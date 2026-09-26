@@ -89,8 +89,15 @@ cd ..
 
 ---
 
-### 2. Start the Local Blockchain (Terminal 1)
-Start your local Ganache node in the project root:
+### 2. Start Everything in One Command (Recommended)
+You can run Ganache, the RPC proxy, and the frontend server together:
+```bash
+npm run dev:all
+```
+
+Or run them individually across separate terminals:
+
+#### Terminal 1 — Start Local Blockchain:
 ```bash
 npm run ganache
 ```

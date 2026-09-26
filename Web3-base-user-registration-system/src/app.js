@@ -83,7 +83,10 @@ App = {
       await App.render();
     } catch (error) {
       console.error('Error initializing registration page:', error);
-      alert('Failed to load application: ' + (error.message || error));
+      const msg = error.message || String(error);
+      if (!msg.includes('RPC endpoint') && !msg.includes('Failed to fetch') && !msg.includes('circuit breaker')) {
+        alert('Failed to load application: ' + msg);
+      }
     }
   },
 
@@ -141,29 +144,60 @@ App = {
       }
       const EmployeeRegistrationArtifact = await response.json();
 
-      const rawNetworkId = await web3.eth.net.getId();
-      const networkId = Number(rawNetworkId);
+      let networkId = null;
+      try {
+        if (window.ethereum && window.ethereum.chainId) {
+          networkId = parseInt(window.ethereum.chainId, 16);
+        } else if (window.ethereum) {
+          const hex = await window.ethereum.request({ method: 'eth_chainId' });
+          networkId = parseInt(hex, 16);
+        }
+      } catch (chainErr) {
+        console.warn('Could not read chainId from window.ethereum:', chainErr);
+      }
+
+      if (!networkId && window.web3 && web3.eth) {
+        try {
+          const rawNetworkId = await web3.eth.net.getId();
+          networkId = Number(rawNetworkId);
+        } catch (netErr) {
+          console.warn('web3.eth.net.getId fallback warning:', netErr);
+        }
+      }
 
       console.log('Connected to network ID:', networkId);
-      console.log('Available deployed networks in artifact:', Object.keys(EmployeeRegistrationArtifact.networks));
+      const deployedNetworks = EmployeeRegistrationArtifact.networks || {};
+      console.log('Available deployed networks in artifact:', Object.keys(deployedNetworks));
 
-      const deployedNetwork = EmployeeRegistrationArtifact.networks[networkId];
+      // 1. Direct match with current network ID
+      let deployedNetwork = networkId ? (deployedNetworks[networkId] || deployedNetworks[String(networkId)]) : null;
 
-      if (deployedNetwork) {
+      // 2. Alias resolution for local testnets (Ganache chainId 1337 <-> networkId 5777 <-> Hardhat 31337)
+      if (!deployedNetwork && (networkId === 1337 || networkId === 5777 || networkId === 31337 || !networkId)) {
+        deployedNetwork = deployedNetworks['5777'] || deployedNetworks['1337'] || deployedNetworks['31337'];
+      }
+
+      // 3. Fallback: use first available deployed address if running on localhost
+      if (!deployedNetwork && Object.keys(deployedNetworks).length > 0) {
+        const firstKey = Object.keys(deployedNetworks)[0];
+        deployedNetwork = deployedNetworks[firstKey];
+      }
+
+      if (deployedNetwork && deployedNetwork.address) {
         App.contracts.EmployeeRegistration = new web3.eth.Contract(
           EmployeeRegistrationArtifact.abi,
           deployedNetwork.address
         );
-        console.log('Contract loaded at address:', deployedNetwork.address);
+        console.log('Contract loaded successfully at address:', deployedNetwork.address);
         if (networkAlert) networkAlert.style.display = 'none';
         return true;
       } else {
-        const availableNetworks = Object.keys(EmployeeRegistrationArtifact.networks).join(', ');
+        const availableNetworks = Object.keys(deployedNetworks).join(', ');
         if (networkAlert) {
           networkAlert.style.display = 'block';
           if (networkAlertText) {
             networkAlertText.innerText =
-              `MetaMask is currently on Network ID ${networkId}. The contract is deployed on local Ganache (${availableNetworks || '5777'}). ` +
+              `MetaMask is currently on Network ID ${networkId || 'Unknown'}. The contract is deployed on local Ganache (${availableNetworks || '5777 / 1337'}). ` +
               `Please switch MetaMask to Ganache Local (http://127.0.0.1:7545, Chain ID: 1337).`;
           }
         }
@@ -171,7 +205,25 @@ App = {
       }
     } catch (error) {
       console.error('initContract error:', error);
-      alert('Error loading smart contract: ' + (error.message || error));
+      const errMsg = error.message || String(error);
+      const isRpcError = errMsg.includes('RPC endpoint') || errMsg.includes('Failed to fetch') || errMsg.includes('connection error') || errMsg.includes('circuit breaker');
+
+      if (networkAlert) {
+        networkAlert.style.display = 'block';
+        if (networkAlertText) {
+          if (isRpcError) {
+            networkAlertText.innerHTML = `
+              <strong>Local Blockchain RPC Connection Issue:</strong><br>
+              MetaMask is currently unable to reach your RPC endpoint (<code>http://127.0.0.1:7545</code>).<br>
+              Make sure Ganache is running (run <code>npm run node</code> or <code>npm run dev:all</code>) and refresh.
+            `;
+          } else {
+            networkAlertText.innerText = 'Smart Contract load warning: ' + errMsg;
+          }
+        }
+      } else {
+        console.warn('Contract initialization error:', errMsg);
+      }
       return false;
     }
   },
@@ -415,6 +467,10 @@ App = {
       }
     } catch (error) {
       console.error('loadEmployees error:', error);
+      const emptyRow = document.createElement('tr');
+      emptyRow.id = 'noEmployeesRow';
+      emptyRow.innerHTML = '<td colspan="6" style="text-align: center; color: var(--danger); padding: 2rem 1rem;">⚠️ Unable to query blockchain ledger. Please verify Ganache is running on port 7545.</td>';
+      tableBody.appendChild(emptyRow);
     }
   },
 

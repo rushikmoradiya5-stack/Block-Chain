@@ -5,8 +5,11 @@
   "scripts": {
     "start": "npm --prefix Web3-base-user-registration-system start",
     "dev": "npm --prefix Web3-base-user-registration-system start",
-    "node": "npx ganache --port 7545 --networkId 5777 --mnemonic \"test test test test test test test test test test test junk\"",
-    "ganache": "npx ganache --port 7545 --networkId 5777 --mnemonic \"test test test test test test test test test test test junk\"",
+    "dev:all": "node start-all.cjs",
+    "node": "npx ganache --port 7545 --chain.networkId 5777 --chain.chainId 1337 --wallet.mnemonic \"test test test test test test test test test test test junk\"",
+    "ganache": "npx ganache --port 7545 --chain.networkId 5777 --chain.chainId 1337 --wallet.mnemonic \"test test test test test test test test test test test junk\"",
+    "proxy": "node proxy8545.cjs",
+    "fund": "node fund.cjs",
     "compile": "npx hardhat compile",
     "deploy:ganache": "npm --prefix Web3-base-user-registration-system run deploy:ganache",
     "migrate": "npm --prefix Web3-base-user-registration-system run migrate"

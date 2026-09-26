@@ -99,9 +99,19 @@ App = {
         params: [{ chainId: chainIdHex }],
       });
       window.location.reload();
+      return;
     } catch (switchError) {
-      // 4902: Chain has not been added to MetaMask
-      if (switchError.code === 4902 || (switchError.message && switchError.message.includes('Unrecognized'))) {
+      console.log('Switch to 0x539 failed, checking alternative options...', switchError);
+      // Try 5777 (0x1691) in case it was added under that ID
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x1691' }],
+        });
+        window.location.reload();
+        return;
+      } catch (switchErr2) {
+        // Chain not added to MetaMask (code 4902)
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
@@ -121,10 +131,8 @@ App = {
           window.location.reload();
         } catch (addError) {
           console.error('Failed to add Ganache network to MetaMask:', addError);
-          alert('Could not add Ganache network automatically. Please verify Ganache is running on port 7545 and add manually:\nRPC URL: http://127.0.0.1:7545\nChain ID: 1337');
+          alert('Please add or switch to Ganache Local manually in MetaMask:\nNetwork Name: Ganache Local\nRPC URL: http://127.0.0.1:7545\nChain ID: 1337\nSymbol: ETH');
         }
-      } else {
-        console.error('Failed to switch network:', switchError);
       }
     }
   },
@@ -166,22 +174,31 @@ App = {
       }
 
       console.log('Connected to network ID:', networkId);
+
+      // Verify that MetaMask is connected to a local development network
+      const isLocalDevNetwork = (networkId === 1337 || networkId === 5777 || networkId === 31337);
+
+      if (!isLocalDevNetwork) {
+        console.warn(`MetaMask is currently on Network ID ${networkId} (not Ganache Local).`);
+        if (networkAlert) {
+          networkAlert.style.display = 'block';
+          if (networkAlertText) {
+            networkAlertText.innerHTML = `
+              <strong>⚠️ Wrong Network Selected in MetaMask:</strong><br>
+              MetaMask is currently on <strong>${networkId === 1 ? 'Ethereum Mainnet' : 'Network ID ' + (networkId || 'Unknown')}</strong>.<br>
+              Your smart contract is deployed on <strong>Ganache Local (http://127.0.0.1:7545, Chain ID: 1337)</strong>.<br>
+              Transactions sent on Ethereum Mainnet will fail. Please switch to Ganache Local below.
+            `;
+          }
+        }
+        return false;
+      }
+
       const deployedNetworks = EmployeeRegistrationArtifact.networks || {};
       console.log('Available deployed networks in artifact:', Object.keys(deployedNetworks));
 
-      // 1. Direct match with current network ID
-      let deployedNetwork = networkId ? (deployedNetworks[networkId] || deployedNetworks[String(networkId)]) : null;
-
-      // 2. Alias resolution for local testnets (Ganache chainId 1337 <-> networkId 5777 <-> Hardhat 31337)
-      if (!deployedNetwork && (networkId === 1337 || networkId === 5777 || networkId === 31337 || !networkId)) {
-        deployedNetwork = deployedNetworks['5777'] || deployedNetworks['1337'] || deployedNetworks['31337'];
-      }
-
-      // 3. Fallback: use first available deployed address if running on localhost
-      if (!deployedNetwork && Object.keys(deployedNetworks).length > 0) {
-        const firstKey = Object.keys(deployedNetworks)[0];
-        deployedNetwork = deployedNetworks[firstKey];
-      }
+      // Match with current network ID or local alias
+      let deployedNetwork = deployedNetworks[networkId] || deployedNetworks[String(networkId)] || deployedNetworks['5777'] || deployedNetworks['1337'];
 
       if (deployedNetwork && deployedNetwork.address) {
         App.contracts.EmployeeRegistration = new web3.eth.Contract(
@@ -192,13 +209,11 @@ App = {
         if (networkAlert) networkAlert.style.display = 'none';
         return true;
       } else {
-        const availableNetworks = Object.keys(deployedNetworks).join(', ');
         if (networkAlert) {
           networkAlert.style.display = 'block';
           if (networkAlertText) {
             networkAlertText.innerText =
-              `MetaMask is currently on Network ID ${networkId || 'Unknown'}. The contract is deployed on local Ganache (${availableNetworks || '5777 / 1337'}). ` +
-              `Please switch MetaMask to Ganache Local (http://127.0.0.1:7545, Chain ID: 1337).`;
+              `Contract address not found for Network ID ${networkId}. Please run "npm run deploy:ganache" to deploy your contract.`;
           }
         }
         return false;
@@ -330,11 +345,22 @@ App = {
   registerEmployee: async function (event) {
     if (event) event.preventDefault();
 
-    // Guard: contract must be loaded
+    // Guard: contract must be loaded and on Ganache Local
     if (!App.contracts.EmployeeRegistration) {
-      alert('Contract is not loaded. Please switch MetaMask to the Ganache Local network.');
+      alert('Cannot register: Smart contract is not loaded or MetaMask is on the wrong network.\n\nPlease switch MetaMask to Ganache Local.');
+      App.switchToGanache();
       return;
     }
+
+    try {
+      const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+      const currentChainId = parseInt(chainIdHex, 16);
+      if (currentChainId !== 1337 && currentChainId !== 5777 && currentChainId !== 31337) {
+        alert('MetaMask is currently on ' + (currentChainId === 1 ? 'Ethereum Mainnet' : 'Chain ID ' + currentChainId) + '.\n\nPlease switch to Ganache Local (Chain ID 1337) before sending transactions.');
+        App.switchToGanache();
+        return;
+      }
+    } catch (e) {}
 
     const nameInput = document.getElementById('name');
     const emailInput = document.getElementById('email');
@@ -598,6 +624,12 @@ App = {
     const newEmail = document.getElementById('editEmail').value.trim();
     const newPosition = document.getElementById('editPosition').value.trim();
 
+    if (!App.contracts.EmployeeRegistration) {
+      alert('Cannot update: Smart contract is not loaded or MetaMask is on the wrong network.\n\nPlease switch MetaMask to Ganache Local.');
+      App.switchToGanache();
+      return;
+    }
+
     if (!id || !newName || !newEmail || !newPosition) {
       alert('Please fill out all fields.');
       return;
@@ -661,6 +693,12 @@ App = {
       `MetaMask will ask you to confirm this transaction.`
     );
     if (!confirmed) return;
+
+    if (!App.contracts.EmployeeRegistration) {
+      alert('Cannot delete: Smart contract is not loaded or MetaMask is on the wrong network.\n\nPlease switch MetaMask to Ganache Local.');
+      App.switchToGanache();
+      return;
+    }
 
     try {
       const instance = App.contracts.EmployeeRegistration;

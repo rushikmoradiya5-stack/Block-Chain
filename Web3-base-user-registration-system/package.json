@@ -1,0 +1,25 @@
+{
+  "name": "employeeregistration",
+  "version": "1.0.0",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "start": "lite-server",
+    "compile": "npx truffle compile",
+    "migrate": "npx truffle migrate --reset",
+    "deploy:ganache": "npx truffle migrate --reset && powershell -Command \"Copy-Item build/contracts/EmployeeRegistration.json src/abis/EmployeeRegistration.json -Force\"",
+    "copy-abi": "powershell -Command \"Copy-Item build/contracts/EmployeeRegistration.json src/abis/EmployeeRegistration.json -Force\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "lite-server": "^2.6.1",
+    "truffle-contract": "^4.0.31",
+    "web3": "^4.13.0"
+  },
+  "description": ""
+}

@@ -1,0 +1,20 @@
+{
+  "name": "web3-workspace",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "npm --prefix Web3-base-user-registration-system start",
+    "dev": "npm --prefix Web3-base-user-registration-system start",
+    "node": "npx ganache --port 7545 --networkId 5777 --mnemonic \"test test test test test test test test test test test junk\"",
+    "ganache": "npx ganache --port 7545 --networkId 5777 --mnemonic \"test test test test test test test test test test test junk\"",
+    "compile": "npx hardhat compile",
+    "deploy:ganache": "npm --prefix Web3-base-user-registration-system run deploy:ganache",
+    "migrate": "npm --prefix Web3-base-user-registration-system run migrate"
+  },
+  "devDependencies": {
+    "hardhat": "^3.17.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

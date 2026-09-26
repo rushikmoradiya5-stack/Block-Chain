@@ -73,24 +73,15 @@
 - [Node.js](https://nodejs.org/) (v18 or higher recommended)
 - [MetaMask Browser Extension](https://metamask.io/)
 
-### 1. Clone & Install Dependencies
+### 1. Install Dependencies
 ```bash
-git clone https://github.com/<your-username>/web3-employee-registration.git
-cd web3-employee-registration
-
-# Install workspace dependencies
 npm install
-
-# Install subproject dependencies
-cd Web3-base-user-registration-system
-npm install
-cd ..
 ```
 
 ---
 
 ### 2. Start the Local Blockchain (Terminal 1)
-Start your local Ganache node in the project root:
+Start your local Ganache node:
 ```bash
 npm run ganache
 ```
@@ -140,7 +131,6 @@ The application will launch in your browser at:
 Run the comprehensive Truffle unit test suite:
 
 ```bash
-cd Web3-base-user-registration-system
 npx truffle test
 ```
 
@@ -154,34 +144,6 @@ npx truffle test
     ✔ should delete an employee and remove from list
 
   5 passing (800ms)
-```
-
----
-
-## 📁 Repository Structure
-
-```text
-web3/
-├── package.json                      # Root workspace scripts (ganache, deploy, dev)
-├── proxy8545.cjs                     # Port compatibility forwarder (8545 -> 7545)
-├── fund.cjs                          # CLI script to send test ETH to any address
-└── Web3-base-user-registration-system/
-    ├── contracts/
-    │   ├── EmployeeRegistration.sol  # Main Solidity smart contract (CRUD)
-    │   └── Migrations.sol            # Truffle deployment migration contract
-    ├── migrations/
-    │   ├── 1_initial_migration.js    # Truffle initial migration
-    │   └── 2_deploy_contracts.js     # Contract deployment script
-    ├── src/
-    │   ├── index.html                # Modern landing page & wallet connect
-    │   ├── registration.html         # Main dashboard, directory, & modals
-    │   ├── app.js                    # Web3.js application logic & event listeners
-    │   └── abis/
-    │       └── EmployeeRegistration.json # Compiled contract ABI artifact
-    ├── test/
-    │   └── EmployeeRegistration.test.js # Truffle unit tests (5 passing)
-    ├── truffle-config.js             # Truffle network & compiler settings
-    └── package.json                  # Subproject dependencies & scripts
 ```
 
 ---

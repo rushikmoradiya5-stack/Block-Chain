@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StaffChain - On-Chain Employee Registry</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-canvas: #F7F5F0;
+            --surface: #FFFFFF;
+            --surface-elevated: #FAF9F6;
+            --surface-subtle: #F3EFE7;
+            --border: #E6E2DA;
+            --border-hover: #D0C9BA;
+            --text-primary: #1C2024;
+            --text-secondary: #5E6773;
+            --text-muted: #8E98A5;
+            
+            /* Bespoke, non-AI palette: Deep Pine / Emerald & Warm Amber */
+            --accent-primary: #0F4C3A;
+            --accent-primary-hover: #0A3629;
+            --accent-warm: #C27803;
+            --accent-warm-hover: #9A5E00;
+            --accent-warm-light: #FEF3C7;
+            
+            --danger: #B91C1C;
+            --danger-bg: #FEF2F2;
+            --danger-border: #FCA5A5;
+            
+            --success: #0F766E;
+            --success-bg: #F0FDF4;
+
+            --radius-sm: 8px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --shadow-subtle: 0 2px 10px rgba(45, 38, 25, 0.04);
+            --shadow-card: 0 10px 30px -4px rgba(45, 38, 25, 0.06), 0 2px 6px -1px rgba(45, 38, 25, 0.02);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            min-height: 100%;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(200, 185, 160, 0.2) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(15, 76, 58, 0.05) 0%, transparent 45%),
+                linear-gradient(180deg, #F8F6F1 0%, #F3EFE7 100%);
+            background-attachment: fixed;
+        }
+
+        #registrationPage {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem 1.5rem;
+        }
+
+        /* Top Navigation Header */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1rem 1.8rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-subtle);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .brand-block {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-primary);
+            color: #FFFFFF;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 10px rgba(15, 76, 58, 0.2);
+        }
+
+        .brand-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        .brand-title span {
+            color: var(--accent-primary);
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .network-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: #EBF5F0;
+            color: var(--accent-primary);
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 0.45rem 0.85rem;
+            border-radius: 50px;
+            border: 1px solid rgba(15, 76, 58, 0.15);
+        }
+
+        .network-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #10B981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+        }
+
+        .account-chip {
+            background: var(--surface-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            padding: 0.45rem 0.95rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: monospace;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .account-chip:hover {
+            border-color: var(--border-hover);
+            background: #EDE8DF;
+        }
+
+        .balance-chip {
+            background: var(--accent-warm-light);
+            color: var(--accent-warm);
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 50px;
+            border: 1px solid rgba(194, 120, 3, 0.2);
+        }
+
+        .btn-faucet {
+            background: var(--accent-warm);
+            color: #FFFFFF;
+            border: none;
+            padding: 0.5rem 1.1rem;
+            border-radius: 50px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 3px 10px rgba(194, 120, 3, 0.25);
+        }
+
+        .btn-faucet:hover {
+            background: var(--accent-warm-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-disconnect {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            padding: 0.45rem 1rem;
+            border-radius: 50px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-disconnect:hover {
+            background: var(--surface-subtle);
+            color: var(--danger);
+            border-color: var(--danger-border);
+        }
+
+        /* KPI Metric Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.4rem;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .stat-label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-val {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        .stat-sub {
+            font-size: 0.82rem;
+            color: var(--accent-primary);
+            font-weight: 600;
+            margin-top: 0.3rem;
+        }
+
+        /* Cards and Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 1.8rem;
+            align-items: start;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.8rem;
+            box-shadow: var(--shadow-card);
+        }
+
+        .card-header {
+            margin-bottom: 1.4rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+
+        .card-header h2 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        .card-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.2rem;
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.4rem;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            font-size: 0.95rem;
+            font-family: inherit;
+            color: var(--text-primary);
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent-primary);
+            background: #FFFFFF;
+            box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--accent-primary);
+            color: #FFFFFF;
+            border: none;
+            padding: 0.95rem;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: inherit;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 4px 14px rgba(15, 76, 58, 0.2);
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(15, 76, 58, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Table Design */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            font-size: 0.92rem;
+        }
+
+        thead tr {
+            background: var(--surface-subtle);
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            padding: 0.95rem 1.1rem;
+            text-align: left;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            color: var(--text-secondary);
+        }
+
+        td {
+            padding: 1rem 1.1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: #FAF8F4;
+        }
+
+        /* Avatar with Initials */
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #EBF5F0;
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.8rem;
+            border: 1px solid rgba(15, 76, 58, 0.2);
+            flex-shrink: 0;
+        }
+
+        .name-link {
+            font-weight: 700;
+            color: var(--accent-primary);
+            text-decoration: none;
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+
+        .name-link:hover {
+            text-decoration: underline;
+            color: var(--accent-primary-hover);
+        }
+
+        .id-badge {
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 0.82rem;
+            background: var(--surface-subtle);
+            color: var(--text-secondary);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .tx-link {
+            font-family: monospace;
+            font-size: 0.82rem;
+            color: var(--accent-warm);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .tx-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Action Buttons */
+        .action-group {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .btn-action-edit {
+            background: var(--accent-warm-light);
+            color: var(--accent-warm);
+            border: 1px solid rgba(194, 120, 3, 0.3);
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-action-edit:hover {
+            background: #FDE68A;
+        }
+
+        .btn-action-delete {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid var(--danger-border);
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-action-delete:hover {
+            background: #FEE2E2;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(28, 32, 36, 0.45);
+            backdrop-filter: blur(6px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+        }
+
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 24px 60px -12px rgba(45, 38, 25, 0.25);
+            max-width: 520px;
+            width: 100%;
+            padding: 2.2rem;
+            position: relative;
+            animation: modalFadeIn 0.2s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.97) translateY(8px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .btn-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.6rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .btn-close:hover {
+            color: var(--text-primary);
+        }
+
+        .detail-row {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 0.85rem 1.1rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .detail-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .detail-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 0.25rem;
+        }
+
+        @media (max-width: 990px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="registrationPage">
+        <!-- Top Navbar -->
+        <nav class="navbar">
+            <div class="brand-block" style="display: flex; align-items: center; gap: 0.95rem;">
+                <svg width="44" height="44" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius: 14px; filter: drop-shadow(0 4px 12px rgba(15, 76, 58, 0.22));">
+                    <defs>
+                        <linearGradient id="brandGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#0F4C3A"/>
+                            <stop offset="100%" stop-color="#08281E"/>
+                        </linearGradient>
+                        <linearGradient id="amberGold" x1="12" y1="12" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#FCD34D"/>
+                            <stop offset="60%" stop-color="#F59E0B"/>
+                            <stop offset="100%" stop-color="#B45309"/>
+                        </linearGradient>
+                    </defs>
+                    <rect width="48" height="48" rx="14" fill="url(#brandGrad)"/>
+                    <!-- Outer cryptographic shield / network polygon -->
+                    <path d="M24 8L37 15.5V32.5L24 40L11 32.5V15.5L24 8Z" stroke="url(#amberGold)" stroke-width="2" stroke-linejoin="round" fill="rgba(245, 158, 11, 0.08)"/>
+                    <!-- Central verified employee identity symbol -->
+                    <circle cx="24" cy="19.5" r="4.5" fill="#FFFFFF"/>
+                    <path d="M16.5 32C16.5 28 19.8 25.5 24 25.5C28.2 25.5 31.5 28 31.5 32" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
+                    <!-- Blockchain corner nodes -->
+                    <circle cx="24" cy="8" r="2.2" fill="#F59E0B"/>
+                    <circle cx="37" cy="15.5" r="2.2" fill="#F59E0B"/>
+                    <circle cx="37" cy="32.5" r="2.2" fill="#F59E0B"/>
+                    <circle cx="24" cy="40" r="2.2" fill="#F59E0B"/>
+                    <circle cx="11" cy="32.5" r="2.2" fill="#F59E0B"/>
+                    <circle cx="11" cy="15.5" r="2.2" fill="#F59E0B"/>
+                </svg>
+                <div>
+                    <div style="font-size: 1.35rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em; line-height: 1.1;">Staff<span style="color: var(--accent-primary);">Chain</span></div>
+                    <div style="font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent-warm); margin-top: 0.15rem;">Verified Workforce Registry</div>
+                </div>
+            </div>
+
+            <div class="nav-controls">
+                <div class="network-badge">
+                    <span class="network-dot"></span>
+                    Ganache (5777)
+                </div>
+                <div id="account" class="account-chip" title="Click to copy">Connecting...</div>
+                <div id="accountBalance" class="balance-chip" style="display: none;">0.000 ETH</div>
+                <button id="faucetButton" type="button" class="btn-faucet">+ Get 10 Free ETH</button>
+                <button id="disconnectButton" class="btn-disconnect">Disconnect</button>
+            </div>
+        </nav>
+
+        <!-- Network Warning Alert (if wrong network) -->
+        <div id="networkAlert" class="card" style="display: none; background: #FEF2F2; border: 1px solid #FCA5A5; margin-bottom: 2rem; text-align: center;">
+            <h3 style="color: #991B1B; margin-bottom: 0.5rem; font-size: 1.1rem;">⚠️ Wrong Network Detected in MetaMask</h3>
+            <p id="networkAlertText" style="color: #7F1D1D; font-size: 0.92rem; margin-bottom: 1.2rem;">
+                MetaMask is currently connected to the wrong network. Please switch to Ganache Local (127.0.0.1:7545) to interact with your smart contract.
+            </p>
+            <button id="switchNetworkBtn" type="button" class="btn-primary" style="max-width: 320px; margin: 0 auto; background: var(--accent-primary);">
+                Switch MetaMask to Ganache Local
+            </button>
+        </div>
+
+        <!-- Metric KPI Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Registered Staff</div>
+                <div id="totalStaffCount" class="stat-val">0</div>
+                <div class="stat-sub">Recorded on Local Ledger</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Smart Contract Status</div>
+                <div class="stat-val" style="color: var(--accent-primary);">Active</div>
+                <div class="stat-sub">EmployeeRegistration.sol</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Gas Verification</div>
+                <div class="stat-val" style="color: var(--accent-warm);">Instant</div>
+                <div class="stat-sub">0-sec local block time</div>
+            </div>
+        </div>
+
+        <!-- Main Registration & Directory Section -->
+        <div class="main-grid">
+            <!-- Left: Registration Form Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Register Employee</h2>
+                    <p>Submits a verifiable staff record directly to the smart contract.</p>
+                </div>
+
+                <form id="registrationForm">
+                    <div class="form-group">
+                        <label class="form-label" for="name">Full Name</label>
+                        <input type="text" id="name" class="input-field" placeholder="e.g. Rushik Patel" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="email">Work Email</label>
+                        <input type="email" id="email" class="input-field" placeholder="e.g. rushik@company.io" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="position">Role / Position</label>
+                        <input type="text" id="position" class="input-field" placeholder="e.g. Lead Blockchain Engineer" required />
+                    </div>
+
+                    <button type="submit" class="btn-primary">Register on Blockchain</button>
+                </form>
+            </div>
+
+            <!-- Right: Staff Directory Table Card -->
+            <div class="card">
+                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem;">
+                    <div>
+                        <h2>Staff Directory</h2>
+                        <p>Click any employee's name to view full cryptographic details.</p>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="employeesTable">
+                        <thead>
+                            <tr>
+                                <th>Transaction</th>
+                                <th>ID</th>
+                                <th>Employee Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesTableBody">
+                            <!-- Employee rows dynamically inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Profile Details Modal -->
+    <div id="detailsModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>👤 Employee Record</h2>
+                <button type="button" class="btn-close" onclick="App.closeDetailsModal()">&times;</button>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-title">Ledger Record ID</div>
+                <div id="detailId" class="detail-value" style="color: var(--accent-primary);">#1</div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-title">Full Legal Name</div>
+                <div id="detailName" class="detail-value">Rushik Patel</div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-title">Role / Position</div>
+                <div id="detailPosition" class="detail-value" style="color: var(--accent-warm);">Lead Blockchain Engineer</div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-title">Official Email</div>
+                <div id="detailEmail" class="detail-value">rushik@company.io</div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-title">Transaction Hash (Proof)</div>
+                <div id="detailTxHash" class="detail-value" style="font-size: 0.82rem; font-family: monospace; word-break: break-all; color: var(--text-secondary);">0x...</div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+                <button id="detailEditBtn" type="button" class="btn-action-edit" style="padding: 0.65rem 1.4rem; font-size: 0.9rem;">✏️ Edit Role</button>
+                <button type="button" class="btn-disconnect" onclick="App.closeDetailsModal()" style="padding: 0.65rem 1.4rem; font-size: 0.9rem;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Employee Modal -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>✏️ Update Employee Record</h2>
+                <button type="button" class="btn-close" onclick="App.closeEditModal()">&times;</button>
+            </div>
+
+            <form id="editEmployeeForm" onsubmit="App.submitEmployeeUpdate(event)">
+                <input type="hidden" id="editEmployeeId" />
+
+                <div class="form-group">
+                    <label class="form-label" for="editName">Full Name</label>
+                    <input type="text" id="editName" class="input-field" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editEmail">Work Email</label>
+                    <input type="email" id="editEmail" class="input-field" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editPosition">Role / Position</label>
+                    <input type="text" id="editPosition" class="input-field" required />
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+                    <button type="button" class="btn-disconnect" onclick="App.closeEditModal()" style="padding: 0.7rem 1.4rem;">Cancel</button>
+                    <button id="editSubmitBtn" type="submit" class="btn-primary" style="width: auto; padding: 0.7rem 1.8rem; margin: 0;">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/truffle-contract@4.0.31/dist/truffle-contract.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
